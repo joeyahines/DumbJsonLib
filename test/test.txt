@@ -1,0 +1,6 @@
+{
+  "action": "opened",
+  "issue": 5,
+  "repository" : "test",
+  "user": {"username": "sed", "id": 5}
+}
