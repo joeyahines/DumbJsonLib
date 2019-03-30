@@ -1,2 +1,2 @@
 # DumbJsonLib
-A very dumb JSON libray written in C
+A very dumb JSON library written in C
