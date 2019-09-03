@@ -17,7 +17,7 @@ int parse_file(FILE *file, void **data) {
             ret = parse_object(file, (struct JSON **)data);
             break;
         case '[':
-            data = (struct JSON *) malloc(sizeof(struct Data *));
+            *data = (struct Data *) malloc(sizeof(struct Data *));
             //ret = parse_array(file, (struct Data *) data);
             ret = 1;
             break;
@@ -220,7 +220,7 @@ int json_to_string(char ** buffer, struct JSON **json) {
                 ndx += count;
             }
             else if (next_member->member->data->type == CHAR_DATA) {
-                count = sprintf(*buffer + ndx, "\t\"%s\": %s,\n", next_member->member->key,
+                count = sprintf(*buffer + ndx, "\t\"%s\": \"%s\",\n", next_member->member->key,
                                 next_member->member->data->char_data);
                 ndx += count;
             }

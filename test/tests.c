@@ -22,7 +22,7 @@ void test_parse_file(CuTest* tc) {
     int count = 0;
     struct JSON * test = NULL;
 
-    file = fopen("../test.txt", "r");
+    file = fopen("../test/test.txt", "r");
 
     if (file == NULL) {
         fprintf(stderr, "Error opening file: %s (%d)\n", strerror(errno), errno);
@@ -44,7 +44,7 @@ void test_print_json(CuTest* tc) {
 
     struct JSON * test = NULL;
 
-    file = fopen("../test.txt", "r");
+    file = fopen("../test/test.txt", "r");
 
     if (file == NULL) {
         fprintf(stderr, "Error opening file: %s (%d)\n", strerror(errno), errno);
@@ -58,7 +58,7 @@ void test_print_json(CuTest* tc) {
     count = json_to_string(&buffer, (void *)&test);
     printf("Size: %d: \n%s\n", count, buffer);
 
-    CuAssertIntEquals(tc, count, 99);
+    CuAssertIntEquals(tc, count, 105);
 
     fclose(file);
     free_json(&test);
