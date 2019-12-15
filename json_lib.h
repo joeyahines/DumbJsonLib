@@ -1,48 +1,51 @@
 #ifndef JSON_LIB_LIBRARY_H
 #define JSON_LIB_LIBRARY_H
 
-#include <stdio.h>
+#define JSON_OBJECT 1
+#define ARRAY_OBJECT 2
 
-#define INT_DATA 0
-#define FLOAT_DATA 1
-#define CHAR_DATA 2
-#define JSON_DATA 3
-#define ARRAY_DATA 4
+enum DataType {INT_DATA, FLOAT_DATA, CHAR_DATA, MEMBER_DATA, ARRAY_DATA};
+
+union DataUnion {
+    int int_data;
+    double float_data;
+    unsigned char * char_data;
+    struct Member * member_data;
+    //struct Data * array_data;
+};
 
 struct Data {
-    __uint8_t type;
-    int * int_data;
-    double * float_data;
-    char * char_data;
-    struct JSON * json_data;
-    struct Data * array;
+    enum DataType type;
+    union DataUnion data;
 };
 
 struct Member {
-    char * key;
+    unsigned char * key;
     struct Data * data;
 };
 
+
 struct JSON {
-    struct Member * member;
-    struct JSON * next_member;
+    struct Member * members;
+    struct Member * member_stack_ptr;
+    int members_size;
+    struct Data * data;
+    struct Data * data_stack_ptr;
+    int data_size;
+    unsigned char * strings;
+    unsigned char * string_stack_ptr;
+    int strings_size;
 };
 
-int parse_file(FILE *, void **);
+int json_init(struct JSON *, struct Member *,  int, struct Data *, int, unsigned char *, int);
 
-int parse_object(FILE *, struct JSON **);
+int parse_json(struct JSON *, const unsigned char *, int);
 
-int parse_array(FILE *, struct Data **);
+unsigned char * parse_string(struct JSON *, int *, const unsigned char *, int);
+int parse_number(struct JSON *, int *, const unsigned char *, int);
 
-int parse_value(FILE *, struct Data **);
-
-int parse_number(FILE *, struct Data **, char firstDigit);
-
-int parse_string(FILE *, char *);
-
-int json_to_string(char **, struct JSON **);
-
-int free_json(struct JSON **);
-
+int isdigit(char);
+int str_to_int(const char *, int);
+float str_to_float(const char *, int);
 
 #endif

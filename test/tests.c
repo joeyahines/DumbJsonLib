@@ -16,59 +16,122 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
-void test_parse_file(CuTest* tc) {
-    FILE * file;
-    int count = 0;
-    struct JSON * test = NULL;
+void test_init(CuTest * tc) {
+    struct Data data[100];
+    struct Member member[100];
+    unsigned char strings[1000];
+    struct JSON json;
 
-    file = fopen("../test/test.txt", "r");
+    int ret = json_init(&json, member, 100, data, 100, strings, 1000);
 
-    if (file == NULL) {
-        fprintf(stderr, "Error opening file: %s (%d)\n", strerror(errno), errno);
-        exit(1);
-    }
+    CuAssertIntEquals(tc, ret,  0);
 
-    count = parse_file(file, (void *)&test);
-    CuAssertIntEquals(tc, count, 0);
-
-    fclose(file);
-
-    free_json(&test);
 }
 
-void test_print_json(CuTest* tc) {
-    FILE * file;
-    char * buffer = NULL;
-    int count = 0;
+void test_parse_string(CuTest * tc) {
+    struct Data data[100];
+    struct Member member[100];
+    unsigned char strings[1000];
+    struct JSON json;
+    int ndx = 0;
 
-    struct JSON * test = NULL;
+    json_init(&json, member, 100, data, 100, strings, 1000);
 
-    file = fopen("../test/test.txt", "r");
+    char * buffer = "this is a test";
 
-    if (file == NULL) {
-        fprintf(stderr, "Error opening file: %s (%d)\n", strerror(errno), errno);
-        exit(1);
-    }
+    unsigned char * str_ptr = parse_string(&json, &ndx, (unsigned char * )buffer, (int)strlen(buffer));
 
-    count = parse_file(file, (void *)&test);
-    CuAssertIntEquals(tc, count, 0);
-
-
-    count = json_to_string(&buffer, (void *)&test);
-    printf("Size: %d: \n%s\n", count, buffer);
-
-    CuAssertIntEquals(tc, count, 105);
-
-    fclose(file);
-    free_json(&test);
-    free(buffer);
+    CuAssertStrEquals(tc, buffer, (char *)json.strings);
+    CuAssertPtrEquals(tc, json.string_stack_ptr, str_ptr+strlen(buffer));
 }
+
+/*
+void test_parse_number(CuTest * tc) {
+    struct Data data[100];
+    struct Member member[100];
+    unsigned char strings[1000];
+    struct JSON json;
+    int ndx = 0;
+    int ret;
+
+    json_init(&json, member, 100, data, 100, strings, 1000);
+
+    char * buffer = "12345";
+
+    ret = parse_number(&json, &ndx, (unsigned char * )buffer, (int)strlen(buffer));
+
+    CuAssertStrEquals(tc, buffer, (char *)json.strings);
+    CuAssertPtrEquals(tc, json.string_stack_ptr, str_ptr+strlen(buffer));
+}
+ */
+
+void test_parse_json(CuTest * tc) {
+    struct Data data[100];
+    struct Member member[100];
+    unsigned char strings[1000];
+    struct JSON json;
+
+    json_init(&json, member, 100, data, 100, strings, 1000);
+
+    char * buffer = "{\"this\" : \"is a test\"}";
+
+    int ret = parse_json(&json, (unsigned char *)buffer, (int)strlen(buffer));
+
+    CuAssertIntEquals(tc, strlen(buffer)-1, ret);
+}
+
+void test_parse_number_int(CuTest * tc) {
+    struct Data data[100];
+    struct Member member[100];
+    unsigned char strings[1000];
+    struct JSON json;
+    int ndx = 0;
+    unsigned char * test_vector[] = {"5", "-1", "2048", "-152"};
+
+    json_init(&json, member, 100, data, 100, strings, 1000);
+
+    for (int i = 0; i < sizeof(test_vector)/sizeof(test_vector[0]); i++) {
+        unsigned char * str = test_vector[i];
+        int value = (int)strtol((char *)str, NULL, 10);
+        ndx = 0;
+
+        parse_number(&json, &ndx, str, (int)strlen((char *)str));
+
+        CuAssertIntEquals(tc, value, json.data[i].data.int_data);
+    }
+}
+
+void test_parse_number_float(CuTest * tc) {
+    struct Data data[100];
+    struct Member member[100];
+    unsigned char strings[1000];
+    struct JSON json;
+    int ndx = 0;
+    unsigned char * test_vector[] = {"5.0", "-1.0", "2048.1546546", "-150.92"};
+
+    json_init(&json, member, 100, data, 100, strings, 1000);
+
+    for (int i = 0; i < sizeof(test_vector)/sizeof(test_vector[0]); i++) {
+        unsigned char * str = test_vector[i];
+        float value = strtof((char *)str, NULL);
+        ndx = 0;
+
+        parse_number(&json, &ndx, str, (int)strlen((char *)str));
+
+        CuAssertDblEquals(tc, value, json.data[i].data.float_data, 0.0001);
+    }
+}
+
 
 CuSuite* test_suite() {
     CuSuite *suite = CuSuiteNew();
-    SUITE_ADD_TEST(suite, test_parse_file);
-    SUITE_ADD_TEST(suite, test_print_json);
+    SUITE_ADD_TEST(suite, test_init);
+    SUITE_ADD_TEST(suite, test_parse_string);
+    SUITE_ADD_TEST(suite, test_parse_json);
+    SUITE_ADD_TEST(suite, test_parse_number_int);
+    SUITE_ADD_TEST(suite, test_parse_number_float);
     return suite;
 }
 
