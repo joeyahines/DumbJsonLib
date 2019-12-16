@@ -47,27 +47,7 @@ void test_parse_string(CuTest * tc) {
     CuAssertPtrEquals(tc, json.string_stack_ptr, str_ptr+strlen(buffer));
 }
 
-/*
-void test_parse_number(CuTest * tc) {
-    struct Data data[100];
-    struct Member member[100];
-    unsigned char strings[1000];
-    struct JSON json;
-    int ndx = 0;
-    int ret;
-
-    json_init(&json, member, 100, data, 100, strings, 1000);
-
-    char * buffer = "12345";
-
-    ret = parse_number(&json, &ndx, (unsigned char * )buffer, (int)strlen(buffer));
-
-    CuAssertStrEquals(tc, buffer, (char *)json.strings);
-    CuAssertPtrEquals(tc, json.string_stack_ptr, str_ptr+strlen(buffer));
-}
- */
-
-void test_parse_json(CuTest * tc) {
+void test_parse_json_string(CuTest * tc) {
     struct Data data[100];
     struct Member member[100];
     unsigned char strings[1000];
@@ -75,11 +55,31 @@ void test_parse_json(CuTest * tc) {
 
     json_init(&json, member, 100, data, 100, strings, 1000);
 
-    char * buffer = "{\"this\" : \"is a test\"}";
+    char * buffer = "{\"this\" : \"is a test\", \"a good\": \"test\"}";
 
     int ret = parse_json(&json, (unsigned char *)buffer, (int)strlen(buffer));
 
     CuAssertIntEquals(tc, strlen(buffer)-1, ret);
+
+    CuAssertStrEquals(tc, "this", (char *)json.members[0].key);
+    CuAssertStrEquals(tc, "test", (char *)json.members[1].data->data.char_data);
+}
+
+void test_parse_json_number(CuTest * tc) {
+    struct Data data[100];
+    struct Member member[100];
+    unsigned char strings[1000];
+    struct JSON json;
+
+    json_init(&json, member, 100, data, 100, strings, 1000);
+
+    char * buffer = "{\"this\" : 12345, \"test\" : -5.548}";
+
+    int ret = parse_json(&json, (unsigned char *)buffer, (int)strlen(buffer));
+
+    CuAssertIntEquals(tc, strlen(buffer)-1, ret);
+    CuAssertIntEquals(tc, 12345, json.members[0].data->data.int_data);
+    CuAssertDblEquals(tc, -5.548f, json.members[1].data->data.float_data, 0.001);
 }
 
 void test_parse_number_int(CuTest * tc) {
@@ -129,7 +129,8 @@ CuSuite* test_suite() {
     CuSuite *suite = CuSuiteNew();
     SUITE_ADD_TEST(suite, test_init);
     SUITE_ADD_TEST(suite, test_parse_string);
-    SUITE_ADD_TEST(suite, test_parse_json);
+    SUITE_ADD_TEST(suite, test_parse_json_string);
+    SUITE_ADD_TEST(suite, test_parse_json_number);
     SUITE_ADD_TEST(suite, test_parse_number_int);
     SUITE_ADD_TEST(suite, test_parse_number_float);
     return suite;

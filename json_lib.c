@@ -116,7 +116,9 @@ int parse_number(struct JSON * json_ptr, int * ndx, const unsigned char * buffer
             negative = -1;
         }
         else if (nextChar == ',' || nextChar == '}' || nextChar == ' ') {
+            (*ndx)--;
             done = 1;
+            continue;
         }
         else {
             ret = -1;
