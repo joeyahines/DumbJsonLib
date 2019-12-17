@@ -88,7 +88,7 @@ void test_parse_number_int(CuTest * tc) {
     unsigned char strings[1000];
     struct JSON json;
     int ndx = 0;
-    unsigned char * test_vector[] = {"5", "-1", "2048", "-152"};
+    unsigned char * test_vector[] = {"5 ", "-1,", "2048 ", "-152 "};
 
     json_init(&json, member, 100, data, 100, strings, 1000);
 
@@ -97,9 +97,9 @@ void test_parse_number_int(CuTest * tc) {
         int value = (int)strtol((char *)str, NULL, 10);
         ndx = 0;
 
-        parse_number(&json, &ndx, str, (int)strlen((char *)str));
+        struct Data * data_ptr = parse_number(&json, &ndx, str, (int)strlen((char *)str));
 
-        CuAssertIntEquals(tc, value, json.data[i].data.int_data);
+        CuAssertIntEquals(tc, value, data_ptr->data.int_data);
     }
 }
 
@@ -109,7 +109,7 @@ void test_parse_number_float(CuTest * tc) {
     unsigned char strings[1000];
     struct JSON json;
     int ndx = 0;
-    unsigned char * test_vector[] = {"5.0", "-1.0", "2048.1546546", "-150.92"};
+    unsigned char * test_vector[] = {"5.0, ", "-1.0 ", "2048.1546546 ", "-150.92}"};
 
     json_init(&json, member, 100, data, 100, strings, 1000);
 
@@ -118,9 +118,9 @@ void test_parse_number_float(CuTest * tc) {
         float value = strtof((char *)str, NULL);
         ndx = 0;
 
-        parse_number(&json, &ndx, str, (int)strlen((char *)str));
+        struct Data * data_ptr = parse_number(&json, &ndx, str, (int)strlen((char *)str));
 
-        CuAssertDblEquals(tc, value, json.data[i].data.float_data, 0.0001);
+        CuAssertDblEquals(tc, value, data_ptr->data.float_data, 0.0001);
     }
 }
 
@@ -129,10 +129,10 @@ CuSuite* test_suite() {
     CuSuite *suite = CuSuiteNew();
     SUITE_ADD_TEST(suite, test_init);
     SUITE_ADD_TEST(suite, test_parse_string);
-    SUITE_ADD_TEST(suite, test_parse_json_string);
-    SUITE_ADD_TEST(suite, test_parse_json_number);
     SUITE_ADD_TEST(suite, test_parse_number_int);
     SUITE_ADD_TEST(suite, test_parse_number_float);
+    SUITE_ADD_TEST(suite, test_parse_json_string);
+    SUITE_ADD_TEST(suite, test_parse_json_number);
     return suite;
 }
 

@@ -18,52 +18,85 @@ int json_init(struct JSON * json_ptr, struct Member * member_array, int member_a
 
 int parse_json(struct JSON * json_ptr, const unsigned char * buffer, int buffer_size) {
     int buffer_ndx = 0;
-    int parse_value = 0;
+    int parse_value_flag = 0;
+    int ret = -1;
     unsigned char * str_ptr;
+    struct Data * data;
 
     if (buffer[buffer_ndx++] == '{') {
         while (buffer_ndx < buffer_size) {
-            if (buffer[buffer_ndx] == '"') {
+            if (buffer[buffer_ndx] ==' ' || buffer[buffer_ndx] == '\n' || buffer[buffer_ndx] == '\t') {
                 buffer_ndx++;
-                str_ptr = parse_string(json_ptr, &buffer_ndx, buffer, buffer_size);
-
-                if (!parse_value) {
-                    json_ptr->member_stack_ptr->key = str_ptr;
-                    parse_value = 1;
-                } else {
-                    json_ptr->data_stack_ptr->type = CHAR_DATA;
-                    json_ptr->data_stack_ptr->data.char_data = str_ptr;
-
-                    json_ptr->member_stack_ptr->data = json_ptr->data_stack_ptr;
-
-                    json_ptr->data_stack_ptr++;
-                    json_ptr->member_stack_ptr++;
-                    parse_value = 0;
-                }
             }
-            else {
-                if (buffer[buffer_ndx] == ':' && !parse_value) {
-                    return -1;
-                } else if (parse_value) {
-                    if (buffer[buffer_ndx] == '-' || isdigit((char) buffer[buffer_ndx])) {
-                        parse_number(json_ptr, &buffer_ndx, buffer, buffer_size);
-                        parse_value = 0;
-                    } else if (buffer[buffer_ndx] == '{') {
-                        // parse json
-                        parse_value = 0;
-                    } else if (buffer[buffer_ndx] == '[') {
-                        // parse list
-                        parse_value = 0;
-                    }
-                } else if (buffer[buffer_ndx] == '}') {
-                    return buffer_ndx;
+            else if (buffer[buffer_ndx] == '}') {
+                ret = buffer_ndx;
+                goto end;
+            } else if (!parse_value_flag) {
+                if (buffer[buffer_ndx] == '"') {
+                    buffer_ndx++;
+                    str_ptr = parse_string(json_ptr, &buffer_ndx, buffer, buffer_size);
+                    json_ptr->member_stack_ptr->key = str_ptr;
+                    parse_value_flag = 1;
                 }
-                buffer_ndx++;
+                else if (buffer[buffer_ndx] == ':') {
+                    goto end;
+                }
+                else {
+                    buffer_ndx++;
+                }
+            } else {
+                if (buffer[buffer_ndx] != ':') {
+                    data = parse_value(json_ptr, &buffer_ndx, buffer, buffer_size);
+                    if (data != 0) {
+                        parse_value_flag = 0;
+                        json_ptr->member_stack_ptr->data = data;
+                        json_ptr->member_stack_ptr++;
+                    } else {
+                        goto end;
+                    }
+                }
+                else {
+                    buffer_ndx++;
+                }
             }
         }
     }
-    return -1;
+
+    end:
+    return ret;
 }
+
+struct Data * parse_value(struct JSON * json_ptr, int * ndx, const unsigned char * buffer, int buffer_size) {
+    unsigned char * str_ptr;
+    struct Data * data_ptr = 0;
+
+    if (buffer[*ndx] == '"') {
+        (*ndx)++;
+        str_ptr = parse_string(json_ptr, ndx, buffer, buffer_size);
+        json_ptr->data_stack_ptr->type = CHAR_DATA;
+        json_ptr->data_stack_ptr->data.char_data = str_ptr;
+
+        data_ptr = json_ptr->data_stack_ptr;
+
+        json_ptr->data_stack_ptr++;
+    }
+    else if (buffer[*ndx] == '-' || isdigit((char) buffer[*ndx])) {
+        data_ptr = parse_number(json_ptr, ndx, buffer, buffer_size);
+    } else if (buffer[*ndx] == '{') {
+        // TODO added nested JSON support
+        data_ptr = 0;
+    } else if (buffer[*ndx] == '[') {
+        // parse list
+        data_ptr = 0;
+    }
+    else {
+        (*ndx)++;
+    }
+
+    return data_ptr;
+}
+
+
 
 unsigned char * parse_string(struct JSON * json_ptr, int * ndx, const unsigned char * buffer, int buffer_size) {
     int done = 0;
@@ -86,11 +119,10 @@ unsigned char * parse_string(struct JSON * json_ptr, int * ndx, const unsigned c
         }
         (*ndx)++;
     }
-
     return string_ptr;
 }
 
-int parse_number(struct JSON * json_ptr, int * ndx, const unsigned char * buffer, int buffer_size) {
+struct Data * parse_number(struct JSON * json_ptr, int * ndx, const unsigned char * buffer, int buffer_size) {
     char nextChar;
     int done = 0;
     int isFloatingPoint = 0;
@@ -98,7 +130,7 @@ int parse_number(struct JSON * json_ptr, int * ndx, const unsigned char * buffer
     int integral = 0;
     float fractional = 0.0f;
     float fractional_place = 0.1f;
-    int ret = 0;
+    struct Data * data_ptr = 0;
 
     while (!done && (*ndx < buffer_size)) {
         nextChar = (char)buffer[*ndx];
@@ -121,27 +153,27 @@ int parse_number(struct JSON * json_ptr, int * ndx, const unsigned char * buffer
             continue;
         }
         else {
-            ret = -1;
-            done = 1;
+            done = -1;
         }
         (*ndx)++;
     }
 
-    if (ret != -1) {
+    if (done == 1) {
 
         if (isFloatingPoint) {
             json_ptr->data_stack_ptr->type = FLOAT_DATA;
             json_ptr->data_stack_ptr->data.float_data = ((float)integral + fractional) * (float)negative;
-            json_ptr->data_stack_ptr++;
+            data_ptr = json_ptr->data_stack_ptr;
         }
         else {
             json_ptr->data_stack_ptr->type = INT_DATA;
             json_ptr->data_stack_ptr->data.int_data = integral * negative;
-            json_ptr->data_stack_ptr++;
+            data_ptr = json_ptr->data_stack_ptr;
         }
+        json_ptr->data_stack_ptr++;
     }
 
-    return ret;
+    return data_ptr;
 }
 
 int isdigit(char c) {

@@ -4,14 +4,13 @@
 #define JSON_OBJECT 1
 #define ARRAY_OBJECT 2
 
-enum DataType {INT_DATA, FLOAT_DATA, CHAR_DATA, MEMBER_DATA, ARRAY_DATA};
+enum DataType {INT_DATA, FLOAT_DATA, CHAR_DATA, JSON_DATA, ARRAY_DATA};
 
 union DataUnion {
     int int_data;
     double float_data;
     unsigned char * char_data;
-    struct Member * member_data;
-    //struct Data * array_data;
+    struct Data * array_data;
 };
 
 struct Data {
@@ -38,14 +37,11 @@ struct JSON {
 };
 
 int json_init(struct JSON *, struct Member *,  int, struct Data *, int, unsigned char *, int);
-
 int parse_json(struct JSON *, const unsigned char *, int);
-
 unsigned char * parse_string(struct JSON *, int *, const unsigned char *, int);
-int parse_number(struct JSON *, int *, const unsigned char *, int);
-
+struct Data * parse_number(struct JSON *, int *, const unsigned char *, int);
+int parse_list(struct JSON *, int *, const unsigned char *, int);
+struct Data * parse_value(struct JSON *, int *, const unsigned char *, int);
 int isdigit(char);
-int str_to_int(const char *, int);
-float str_to_float(const char *, int);
 
 #endif
