@@ -46,7 +46,7 @@ int parse_json(struct JSON * json_ptr, const unsigned char * buffer, int buffer_
                 }
             } else {
                 if (buffer[buffer_ndx] != ':') {
-                    data = parse_value(json_ptr, &buffer_ndx, buffer, buffer_size);
+                    data = parse_value(json_ptr, &buffer_ndx, buffer, buffer_size, 0);
                     if (data != 0) {
                         parse_value_flag = 0;
                         json_ptr->member_stack_ptr->data = data;
@@ -66,7 +66,47 @@ int parse_json(struct JSON * json_ptr, const unsigned char * buffer, int buffer_
     return ret;
 }
 
-struct Data * parse_value(struct JSON * json_ptr, int * ndx, const unsigned char * buffer, int buffer_size) {
+struct Data * parse_list(struct JSON * json_ptr, int * ndx, const unsigned char * buffer, int buffer_size) {
+    int parse_value_flag = 1;
+    struct Data * data_ptr;
+    struct Data * array_start_ptr = json_ptr->data_stack_ptr;
+    int array_length = 0;
+
+    array_start_ptr->type = ARRAY_DATA;
+    json_ptr->data_stack_ptr++;
+    array_start_ptr->data.array_data = json_ptr->data_stack_ptr;
+
+    while(buffer[*ndx] != ']' && *ndx < buffer_size) {
+        if (!is_white_space((char) buffer[*ndx])) {
+            if (parse_value_flag) {
+                data_ptr = parse_value(json_ptr, ndx, buffer, buffer_size, 1);
+
+                if (data_ptr == 0) {
+                    return 0;
+                }
+
+                array_length++;
+                parse_value_flag = 0;
+            }
+            else if (buffer[*ndx] == ',') {
+                parse_value_flag = 1;
+                (*ndx)++;
+            }
+            else {
+                (*ndx)++;
+            }
+        }
+        else {
+            (*ndx)++;
+        }
+
+    }
+
+    array_start_ptr->array_length = array_length;
+    return array_start_ptr;
+}
+
+struct Data * parse_value(struct JSON * json_ptr, int * ndx, const unsigned char * buffer, int buffer_size, int in_list) {
     unsigned char * str_ptr;
     struct Data * data_ptr = 0;
 
@@ -80,14 +120,19 @@ struct Data * parse_value(struct JSON * json_ptr, int * ndx, const unsigned char
 
         json_ptr->data_stack_ptr++;
     }
-    else if (buffer[*ndx] == '-' || isdigit((char) buffer[*ndx])) {
+    else if (buffer[*ndx] == '-' || is_digit((char) buffer[*ndx])) {
         data_ptr = parse_number(json_ptr, ndx, buffer, buffer_size);
     } else if (buffer[*ndx] == '{') {
         // TODO added nested JSON support
         data_ptr = 0;
     } else if (buffer[*ndx] == '[') {
-        // parse list
-        data_ptr = 0;
+        if (!in_list) {
+            (*ndx)++;
+            data_ptr = parse_list(json_ptr, ndx, buffer, buffer_size);
+        }
+        else {
+            data_ptr = 0;
+        }
     }
     else {
         (*ndx)++;
@@ -134,10 +179,10 @@ struct Data * parse_number(struct JSON * json_ptr, int * ndx, const unsigned cha
 
     while (!done && (*ndx < buffer_size)) {
         nextChar = (char)buffer[*ndx];
-        if (isdigit(nextChar) && !isFloatingPoint) {
+        if (is_digit(nextChar) && !isFloatingPoint) {
             integral = (integral * 10) + (nextChar - '0');
         }
-        else if (isdigit(nextChar) && isFloatingPoint) {
+        else if (is_digit(nextChar) && isFloatingPoint) {
             fractional += (((float)((nextChar - '0')) * fractional_place));
             fractional_place *= 0.1f;
         }
@@ -147,7 +192,7 @@ struct Data * parse_number(struct JSON * json_ptr, int * ndx, const unsigned cha
         else if (nextChar == '-') {
             negative = -1;
         }
-        else if (nextChar == ',' || nextChar == '}' || nextChar == ' ') {
+        else if (is_white_space(nextChar) || nextChar == ',' || nextChar == '}' || nextChar == ']') {
             (*ndx)--;
             done = 1;
             continue;
@@ -176,8 +221,12 @@ struct Data * parse_number(struct JSON * json_ptr, int * ndx, const unsigned cha
     return data_ptr;
 }
 
-int isdigit(char c) {
+int is_digit(char c) {
     return c >= '0' && c <= '9';
+}
+
+int is_white_space(char c) {
+    return c == ' ' || c == '\t' || c == '\n';
 }
 
 

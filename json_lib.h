@@ -1,9 +1,6 @@
 #ifndef JSON_LIB_LIBRARY_H
 #define JSON_LIB_LIBRARY_H
 
-#define JSON_OBJECT 1
-#define ARRAY_OBJECT 2
-
 enum DataType {INT_DATA, FLOAT_DATA, CHAR_DATA, JSON_DATA, ARRAY_DATA};
 
 union DataUnion {
@@ -16,6 +13,7 @@ union DataUnion {
 struct Data {
     enum DataType type;
     union DataUnion data;
+    int array_length;
 };
 
 struct Member {
@@ -40,8 +38,9 @@ int json_init(struct JSON *, struct Member *,  int, struct Data *, int, unsigned
 int parse_json(struct JSON *, const unsigned char *, int);
 unsigned char * parse_string(struct JSON *, int *, const unsigned char *, int);
 struct Data * parse_number(struct JSON *, int *, const unsigned char *, int);
-int parse_list(struct JSON *, int *, const unsigned char *, int);
-struct Data * parse_value(struct JSON *, int *, const unsigned char *, int);
-int isdigit(char);
+struct Data * parse_list(struct JSON *, int *, const unsigned char *, int);
+struct Data * parse_value(struct JSON *, int *, const unsigned char *, int, int);
+int is_digit(char);
+int is_white_space(char);
 
 #endif

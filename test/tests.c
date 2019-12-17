@@ -82,6 +82,25 @@ void test_parse_json_number(CuTest * tc) {
     CuAssertDblEquals(tc, -5.548f, json.members[1].data->data.float_data, 0.001);
 }
 
+void test_parse_json_list(CuTest * tc) {
+    struct Data data[100];
+    struct Member member[100];
+    unsigned char strings[1000];
+    struct JSON json;
+
+    json_init(&json, member, 100, data, 100, strings, 1000);
+
+    char * buffer = "{\"this\" : [\"is a test\", \"a good\", 1235, 5.0, \"test\"]}";
+
+    int ret = parse_json(&json, (unsigned char *)buffer, (int)strlen(buffer));
+
+    CuAssertIntEquals(tc, strlen(buffer)-1, ret);
+
+    CuAssertStrEquals(tc, "this", (char *)json.members[0].key);
+    CuAssertStrEquals(tc, "is a test", (char *)json.members[0].data->data.array_data[0].data.char_data);
+    CuAssertIntEquals(tc, 1235, json.members[0].data->data.array_data[2].data.int_data);
+}
+
 void test_parse_number_int(CuTest * tc) {
     struct Data data[100];
     struct Member member[100];
@@ -124,6 +143,24 @@ void test_parse_number_float(CuTest * tc) {
     }
 }
 
+void test_parse_list(CuTest * tc) {
+    struct Data data[100];
+    struct Member member[100];
+    unsigned char strings[1000];
+    struct JSON json;
+    int ndx = 0;
+    json_init(&json, member, 100, data, 100, strings, 1000);
+
+    unsigned char * list = "\"this is\", 55, 5.0, -1, \"a good test\", 55]";
+
+    struct Data * data_ptr = parse_list(&json, &ndx, list, (int)strlen((char *) list));
+
+    CuAssertPtrNotNull(tc, data_ptr);
+    CuAssertIntEquals(tc, 6, data_ptr->array_length);
+    CuAssertIntEquals(tc, 55, data_ptr->data.array_data[1].data.int_data);
+    CuAssertStrEquals(tc, "a good test", (char *)data_ptr->data.array_data[4].data.char_data);
+}
+
 
 CuSuite* test_suite() {
     CuSuite *suite = CuSuiteNew();
@@ -131,8 +168,10 @@ CuSuite* test_suite() {
     SUITE_ADD_TEST(suite, test_parse_string);
     SUITE_ADD_TEST(suite, test_parse_number_int);
     SUITE_ADD_TEST(suite, test_parse_number_float);
+    SUITE_ADD_TEST(suite, test_parse_list);
     SUITE_ADD_TEST(suite, test_parse_json_string);
     SUITE_ADD_TEST(suite, test_parse_json_number);
+    SUITE_ADD_TEST(suite, test_parse_json_list);
     return suite;
 }
 
